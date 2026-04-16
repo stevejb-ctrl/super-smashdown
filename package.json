@@ -1,0 +1,19 @@
+{
+  "name": "super-smashdown",
+  "version": "1.0.0",
+  "description": "Super Smashdown: The Long Game — 16-bit arcade education game about Australian superannuation",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "phaser": "^3.87.0",
+    "@fontsource/press-start-2p": "^5.1.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vite": "^6.0.0"
+  }
+}
