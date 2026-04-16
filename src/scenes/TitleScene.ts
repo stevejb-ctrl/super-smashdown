@@ -87,7 +87,7 @@ export class TitleScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Footer — brand presence
-    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 14, 'Supported by Aware Super', {
+    this.add.text(GAME_WIDTH / 2, GAME_HEIGHT - 14, 'Supported by a Super Helpful Fund', {
       fontFamily: PIXEL_FONT, fontSize: '7px', color: PALETTE.brand.magenta,
     }).setOrigin(0.5);
 

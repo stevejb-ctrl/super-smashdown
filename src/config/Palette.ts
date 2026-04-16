@@ -1,7 +1,7 @@
 // 16-bit color palettes — limited palettes per act for authentic retro feel
 
 export const PALETTE = {
-  // Aware Super brand — woven subtly through the arcade aesthetic
+  // Brand colours — woven subtly through the arcade aesthetic
   brand: {
     magenta: '#ED008C',
     magentaDark: '#DB0081',

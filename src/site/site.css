@@ -2,17 +2,16 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  /* Aware Super brand palette woven through */
   --ink: #1A1433;
   --ink-soft: #3B3560;
   --ink-muted: #6B6486;
-  --bg: #F6F2F7;               /* Aware lilac */
+  --bg: #F6F2F7;
   --bg-alt: #FFFFFF;
-  --bg-tint: #FEF6EF;          /* Aware warm peach */
-  --primary: #ED008C;          /* Aware magenta — links, primary accents */
-  --primary-dark: #DB0081;     /* Aware magenta dark */
-  --primary-soft: #FDD7F0;     /* Aware light pink */
-  --accent: #55005A;           /* Aware deep purple — CTAs, badges */
+  --bg-tint: #FEF6EF;
+  --primary: #ED008C;          /* magenta — links, primary accents */
+  --primary-dark: #DB0081;
+  --primary-soft: #FDD7F0;
+  --accent: #55005A;           /* deep purple — CTAs, badges */
   --accent-dark: #3D0042;
   --warm: #FFC43D;             /* sunny yellow — game logo + highlights */
   --warm-soft: #FFF3D0;
