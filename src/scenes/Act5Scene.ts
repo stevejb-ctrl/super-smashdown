@@ -644,8 +644,8 @@ export class Act5Scene extends Phaser.Scene {
     for (const door of this.doors) {
       if (door.opened) continue;
       const chargedCost = Math.floor(door.cost * (1 - BALANCE.act5.chargedKickDiscount));
-      let color = PALETTE.ui.red;
-      let bg = '#3a1a1a';
+      let color: string = PALETTE.ui.red;
+      let bg: string = '#3a1a1a';
       if (door.cost === 0) {
         color = PALETTE.ui.green;
         bg = '#1a3a1a';
