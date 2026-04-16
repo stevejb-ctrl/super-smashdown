@@ -10,6 +10,46 @@ import { Player } from '../entities/Player';
 
 type Act5Phase = 'intro' | 'powerReveal' | 'playing' | 'complete';
 
+// ── PER-DOOR STORY DATA ──
+// Each entry matches the door order in BalanceConfig.act5.doorLabels (0–6).
+const DOOR_STORIES: { tagline: string; lines: string[]; accent: string }[] = [
+  { // 0 — AGE PENSION (FREE)
+    tagline: 'THE SAFETY NET HOLDS.',
+    lines: ['Government support: always there.', 'No super needed. No one left behind.'],
+    accent: '#40d0d0',
+  },
+  { // 1 — SIMPLE JOYS (FREE)
+    tagline: 'THE SMALL THINGS MATTER.',
+    lines: ['Garden. Coffee. A good walk.', 'Joy does not need a price tag.'],
+    accent: '#40c040',
+  },
+  { // 2 — HELPING FAMILY
+    tagline: 'GIVE WHILE YOU STILL CAN.',
+    lines: ['School fees. First homes. Fresh starts.', 'Your super becomes their launch pad.'],
+    accent: '#e060a0',
+  },
+  { // 3 — HEALTH & CARE
+    tagline: 'YOUR HEALTH. YOUR CHOICE.',
+    lines: ['Skip the wait. Pick your specialist.', 'Super buys you time when it counts.'],
+    accent: '#e04040',
+  },
+  { // 4 — HOLIDAYS
+    tagline: 'MILES AHEAD OF THE DESK.',
+    lines: ['Road trips. Beach weeks. Long weekends.', 'Work is done. Now go explore.'],
+    accent: '#f0c040',
+  },
+  { // 5 — COMFORTABLE HOME
+    tagline: 'A PLACE OF YOUR OWN.',
+    lines: ['Your home. Your terms.', 'No rent. No landlord. No compromise.'],
+    accent: '#e08020',
+  },
+  { // 6 — WORLD TRAVEL
+    tagline: 'EVERY DREAM — DELIVERED.',
+    lines: ['Rome. Tokyo. New York. Everywhere.', 'You played the long game. This is it.'],
+    accent: '#f0d060',
+  },
+];
+
 interface Door {
   index: number;
   x: number;
@@ -32,6 +72,10 @@ export class Act5Scene extends Phaser.Scene {
   private juice!: JuiceManager;
   private parallax!: ParallaxManager;
   private doors: Door[] = [];
+
+  // Story card (per-door narrative panel)
+  private storyCard: Phaser.GameObjects.Container | null = null;
+  private storyCardTween: Phaser.Tweens.Tween | null = null;
 
   // Power state
   private power = 0;
@@ -68,6 +112,8 @@ export class Act5Scene extends Phaser.Scene {
     this.isCharging = false;
     this.kickCooldown = 0;
     this.partTwoObjects = [];
+    this.storyCard = null;
+    this.storyCardTween = null;
 
     this.showIntroSequence();
   }
@@ -615,6 +661,15 @@ export class Act5Scene extends Phaser.Scene {
         this.instructionText.setColor(PALETTE.ui.lightGrey);
       }
     });
+
+    // Story card — slides up from screen bottom after the visual burst settles
+    this.time.delayedCall(600, () => {
+      if (this.phase === 'playing') this.showStoryCard(door.index);
+    });
+
+    // Milestone banner — fires immediately alongside the burst
+    const doorsNow = this.doors.filter(d => d.opened).length;
+    this.checkMilestone(doorsNow);
   }
 
   // ── HUD UPDATES ──
@@ -689,6 +744,7 @@ export class Act5Scene extends Phaser.Scene {
   }
 
   private completeAct(): void {
+    this.dismissStoryCard(false); // clean up any card still visible during transition
     const outcome = gameState.calculateOutcome();
     gameState.set('outcomeTier', outcome);
     gameState.set('retirementPowerSpent', this.startingPower - this.power);
@@ -703,5 +759,165 @@ export class Act5Scene extends Phaser.Scene {
       this.parallax.destroy();
       this.scene.start(SCENES.ACT_OUTRO, { actNumber: 5 });
     });
+  }
+
+  // ── STORY CARD ──
+
+  /** Slide a per-door narrative panel up from the screen bottom. */
+  private showStoryCard(doorIndex: number): void {
+    this.dismissStoryCard(false); // remove any existing card instantly
+
+    const story = DOOR_STORIES[doorIndex];
+    if (!story) return;
+
+    const cardW = 500;
+    const cardH = 72;
+    const cardLeft = GAME_WIDTH / 2 - cardW / 2;   // 70
+    const cardYRest = GAME_HEIGHT - 8 - cardH;       // 280
+    const cardYHidden = GAME_HEIGHT + cardH;          // 432
+
+    const container = this.add.container(cardLeft, cardYHidden).setDepth(45);
+
+    // Dark background
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0a1a, 0.92);
+    bg.fillRect(0, 0, cardW, cardH);
+
+    // Accent top border (3 px)
+    const accentHex = parseInt(story.accent.replace('#', ''), 16);
+    const topBorder = this.add.graphics();
+    topBorder.fillStyle(accentHex, 1);
+    topBorder.fillRect(0, 0, cardW, 3);
+
+    // Left sidebar accent (6 px, 40% alpha)
+    const sidebar = this.add.graphics();
+    sidebar.fillStyle(accentHex, 0.4);
+    sidebar.fillRect(0, 0, 6, cardH);
+
+    // Tagline
+    const tagline = this.add.text(16, 10, story.tagline, {
+      fontFamily: PIXEL_FONT, fontSize: '8px', color: story.accent,
+    }).setOrigin(0, 0);
+
+    // Life snapshot lines
+    const line1 = this.add.text(16, 30, story.lines[0], {
+      fontFamily: PIXEL_FONT, fontSize: '7px', color: '#9a9aaa',
+    }).setOrigin(0, 0);
+
+    container.add([bg, topBorder, sidebar, tagline, line1]);
+
+    if (story.lines[1]) {
+      const line2 = this.add.text(16, 48, story.lines[1], {
+        fontFamily: PIXEL_FONT, fontSize: '7px', color: '#9a9aaa',
+      }).setOrigin(0, 0);
+      container.add(line2);
+    }
+
+    this.storyCard = container;
+
+    // Slide up into view
+    this.storyCardTween = this.tweens.add({
+      targets: container,
+      y: cardYRest,
+      duration: 220,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(2500, () => this.dismissStoryCard(true));
+      },
+    });
+  }
+
+  /** Remove the story card (instantly or with a slide-out animation). */
+  private dismissStoryCard(animate: boolean): void {
+    if (!this.storyCard) return;
+    const card = this.storyCard;
+    this.storyCard = null;
+
+    if (this.storyCardTween) {
+      this.storyCardTween.stop();
+      this.storyCardTween = null;
+    }
+
+    if (animate) {
+      this.tweens.add({
+        targets: card,
+        y: GAME_HEIGHT + 80,
+        alpha: 0,
+        duration: 180,
+        ease: 'Cubic.easeIn',
+        onComplete: () => card.destroy(),
+      });
+    } else {
+      card.destroy();
+    }
+  }
+
+  // ── MILESTONE BANNERS ──
+
+  /** Sweep a full-width banner across the screen at key door counts (3 / 5 / 7). */
+  private checkMilestone(doorsOpened: number): void {
+    const milestones: Record<number, { text: string; sub?: string; color: string }> = {
+      3: { text: 'A RETIREMENT TAKING SHAPE...', color: '#40d0d0' },
+      5: { text: 'BUILDING A FULL LIFE!',        color: '#40c040' },
+      7: { text: 'PERFECT RETIREMENT —',         sub: 'EVERY DREAM UNLOCKED!', color: '#f0c040' },
+    };
+
+    const m = milestones[doorsOpened];
+    if (!m) return;
+
+    const bannerH = m.sub ? 54 : 40;
+    const bannerY = GAME_HEIGHT / 2 - bannerH / 2;
+    const accentHex = parseInt(m.color.replace('#', ''), 16);
+
+    const container = this.add.container(-GAME_WIDTH, bannerY).setDepth(48);
+
+    // Background band
+    const bg = this.add.graphics();
+    bg.fillStyle(0x0a0a1a, 0.88);
+    bg.fillRect(0, 0, GAME_WIDTH, bannerH);
+
+    // Top and bottom accent lines
+    const topLine = this.add.graphics();
+    topLine.fillStyle(accentHex, 0.8);
+    topLine.fillRect(0, 0, GAME_WIDTH, 2);
+
+    const botLine = this.add.graphics();
+    botLine.fillStyle(accentHex, 0.8);
+    botLine.fillRect(0, bannerH - 2, GAME_WIDTH, 2);
+
+    const mainText = this.add.text(GAME_WIDTH / 2, m.sub ? 12 : bannerH / 2, m.text, {
+      fontFamily: PIXEL_FONT, fontSize: '10px', color: m.color,
+    }).setOrigin(0.5, m.sub ? 0 : 0.5);
+
+    container.add([bg, topLine, botLine, mainText]);
+
+    if (m.sub) {
+      const subText = this.add.text(GAME_WIDTH / 2, 34, m.sub, {
+        fontFamily: PIXEL_FONT, fontSize: '10px', color: '#f0d060',
+      }).setOrigin(0.5, 0);
+      container.add(subText);
+    }
+
+    // Sweep in from left, hold, sweep off to right
+    this.tweens.add({
+      targets: container,
+      x: 0,
+      duration: 300,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.time.delayedCall(1800, () => {
+          this.tweens.add({
+            targets: container,
+            x: GAME_WIDTH,
+            alpha: 0,
+            duration: 250,
+            ease: 'Cubic.easeIn',
+            onComplete: () => container.destroy(),
+          });
+        });
+      },
+    });
+
+    this.juice.starburst(GAME_WIDTH / 2, GAME_HEIGHT / 2);
   }
 }
